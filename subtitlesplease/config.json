@@ -1,0 +1,5 @@
+{
+    "watch-directories":["/Users/smurf/Downloads"],
+    "file-types":["*.avi", "*.mp4", "*.mkv"],
+    "subtitles-modules":["Subscene"]
+}
