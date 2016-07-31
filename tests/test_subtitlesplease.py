@@ -21,7 +21,7 @@ class TestSubtitlesPlease(unittest.TestCase):
             {
                 "watch-directories":["/Users/smurf/Downloads"],
                 "file-types":["*.avi", "*.mp4", "*.mkv"],
-                "subtitles-modules":["Subscene"]
+                "subtitles-modules":["subscene:Subscene", "opensubtitles:OpenSubtitles"]
             }
             """)
         self.subs = subtitlesplease.SubtitlesPlease(config_fp=config_file)
@@ -38,6 +38,13 @@ class TestSubtitlesPlease(unittest.TestCase):
         self.assertEqual(["/Users/smurf/Downloads"], self.subs.directories)
         self.assertEqual(["*.avi", "*.mp4", "*.mkv"], self.subs.files)
 
+    def test_subscene_module_loaded(self):
+        subscene = self.subs.modules[0]
+        self.assertEqual("Subscene", str(subscene))
+
+    def test_opensubtitles_module_loaded(self):
+        openSubs = self.subs.modules[1]
+        self.assertEqual("OpenSubtitles", str(openSubs))
 
 if __name__ == '__main__':
     sys.exit(unittest.main())
