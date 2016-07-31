@@ -5,7 +5,7 @@
 test_subtitlesplease
 ----------------------------------
 
-Tests for `subtitlesplease` module.
+Tests for `subtitles please` module.
 """
 
 import sys
@@ -17,14 +17,13 @@ from subtitlesplease import subtitlesplease
 class TestSubtitlesPlease(unittest.TestCase):
     def setUp(self):
         config_file = StringIO(
-            """
+            u"""
             {
                 "watch-directories":["/Users/smurf/Downloads"],
                 "file-types":["*.avi", "*.mp4", "*.mkv"],
                 "subtitles-modules":["Subscene"]
             }
-            """
-        )
+            """)
         self.subs = subtitlesplease.SubtitlesPlease(config_fp=config_file)
 
     def tearDown(self):
@@ -38,7 +37,7 @@ class TestSubtitlesPlease(unittest.TestCase):
         self.subs = subtitlesplease.SubtitlesPlease()
         self.assertEqual(["/Users/smurf/Downloads"], self.subs.directories)
         self.assertEqual(["*.avi", "*.mp4", "*.mkv"], self.subs.files)
-    
+
 
 if __name__ == '__main__':
     sys.exit(unittest.main())

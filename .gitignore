@@ -69,3 +69,5 @@ target/
 .idea/workspace.xml
 
 .idea/inspectionProfiles/Project_Default.xml
+
+.idea/inspectionProfiles/profiles_settings.xml
