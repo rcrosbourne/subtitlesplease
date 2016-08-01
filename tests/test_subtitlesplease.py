@@ -12,6 +12,7 @@ import sys
 import unittest
 from io import StringIO
 from subtitlesplease.subtitlesplease import SubtitlesPlease
+from modules.subscene import Subscene
 
 
 class TestSubtitlesPlease(unittest.TestCase):
@@ -25,6 +26,7 @@ class TestSubtitlesPlease(unittest.TestCase):
             }
             """)
         self.subs = SubtitlesPlease(config_fp=config_file)
+        self.subscene = Subscene()
 
     def tearDown(self):
         pass
@@ -45,6 +47,11 @@ class TestSubtitlesPlease(unittest.TestCase):
     def test_opensubtitles_module_loaded(self):
         openSubs = self.subs.modules[1]
         self.assertEqual("OpenSubtitles", str(openSubs))
+
+    def test_subscene_query_subscene(self):
+        docs = self.subscene.get_subtitles(title="Preacher.S01E10.720p.HDTV.x264-AVS[eztv].mkv", location="/")
+        self.assertIsNotNone(docs)
+
 
 if __name__ == '__main__':
     sys.exit(unittest.main())
