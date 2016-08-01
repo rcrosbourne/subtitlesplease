@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import click
-
+import subtitlesplease
 
 @click.command()
 def main(args=None):
-    """Console script for subtitlesplease"""
-    click.echo("Replace this message by putting your code into "
-                "subtitlesplease.cli.main")
-    click.echo("See click documentation at http://click.pocoo.org/")
+    subp = subtitlesplease.SubtitlesPlease()
+    subp.run()
 
 
 if __name__ == "__main__":

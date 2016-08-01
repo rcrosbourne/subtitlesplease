@@ -11,7 +11,7 @@ Tests for `subtitles please` module.
 import sys
 import unittest
 from io import StringIO
-from subtitlesplease import subtitlesplease
+from subtitlesplease.subtitlesplease import SubtitlesPlease
 
 
 class TestSubtitlesPlease(unittest.TestCase):
@@ -24,7 +24,7 @@ class TestSubtitlesPlease(unittest.TestCase):
                 "subtitles-modules":["subscene:Subscene", "opensubtitles:OpenSubtitles"]
             }
             """)
-        self.subs = subtitlesplease.SubtitlesPlease(config_fp=config_file)
+        self.subs = SubtitlesPlease(config_fp=config_file)
 
     def tearDown(self):
         pass
@@ -34,7 +34,7 @@ class TestSubtitlesPlease(unittest.TestCase):
         self.assertEqual(["*.avi", "*.mp4", "*.mkv"], self.subs.files)
 
     def test_default_config_setup(self):
-        self.subs = subtitlesplease.SubtitlesPlease()
+        self.subs = SubtitlesPlease()
         self.assertEqual(["/Users/smurf/Downloads"], self.subs.directories)
         self.assertEqual(["*.avi", "*.mp4", "*.mkv"], self.subs.files)
 
