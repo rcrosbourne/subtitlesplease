@@ -1,6 +1,11 @@
 import logging
 import re
 import requests
+import zipfile
+import io
+import os
+import tempfile
+import shutil
 from lxml import html
 
 from modules.basesubtitles import BaseSubtitles
@@ -11,6 +16,7 @@ class Subscene(BaseSubtitles):
     This module is responsible for getting subtiles from subscene.com
     """
     SEARCH_URL = "https://subscene.com/subtitles/release?q="
+    BASE_URL = "https://subscene.com"
 
     def get_subtitles(self, title=None, location=None, language="English"):
         """
@@ -23,13 +29,22 @@ class Subscene(BaseSubtitles):
         :param location: location on the filesystem to store subtitle
         :return: True of subtitle was found false otherwise
         """
-        logging.info("%s Getting title of %s to store %s" % (str(self), title, location))
-        subtitle_list = self.query_subscene(title=title, language=language)
-        if len(subtitle_list) > 0:
-            subtitle = self.best_subtitle_from_list(subtitle_list, title)
-            if subtitle:
-                self.download_subtitle(subtitle=subtitle, location=location, title=title)
-        return subtitle_list
+        try:
+            logging.info("%s Getting title of %s to store %s" % (str(self), title, location))
+            subtitle_list = self.query_subscene(title=title, language=language)
+            logging.info("%s subtitles found" % len(subtitle_list))
+            if len(subtitle_list) > 0:
+                subtitle = self.best_subtitle_from_list(subtitle_list, title)
+                if subtitle:
+                    self.download_subtitle(subtitle=subtitle, location=location, title=title)
+                    return True
+                else:
+                    logging.info("No suitable subtitles were found")
+                    return False
+            return False
+        except Exception as ex:
+            logging.error("An error occurred getting subs: %s" % ex)
+            return False
 
     @staticmethod
     def best_subtitle_from_list(subtitle_list, title):
@@ -46,8 +61,10 @@ class Subscene(BaseSubtitles):
             tv_show_check = re.compile(tv_show_regex)
             res = tv_show_check.search(title)
             filtered_list = []
+            logging.info("Getting best subtitle from list")
             if res:
-                # title is a tvshow we need to search for the same tv-show in our list
+                logging.info("Title appears to be a TV-Show")
+                # title is a tv-show we need to search for the same tv-show in our list
                 # eliminate those that aren't
                 (value,) = res.groups()
                 new_re = re.compile(value)
@@ -57,27 +74,28 @@ class Subscene(BaseSubtitles):
                         # we now need to ensure we have the right title.
                         # that is everything to the left of S00E00 must match
                         left_of_title = title.split(value)[0]
-                        left_of_subtitle_tilte = sub.title.split(value)[0]
-                        if left_of_title.lower() == left_of_subtitle_tilte.lower():
+                        left_of_subtitle_title = sub.title.split(value)[0]
+                        if left_of_title.lower() == left_of_subtitle_title.lower():
                             # now we know we have the right title
                             # I am biased to hearing impaired subtitles done by GoldenBeard
                             # So I will select that to return otherwise any will do
                             filtered_list.append(sub)
                 if len(filtered_list) > 0:
-                    preferred_choice = [x if x.owner == "GoldenBeard" and x.hearing_impaired else x.hearing_impaired for x
-                                        in filtered_list]
+                    preferred_choice = [x for x in filtered_list if x.owner == "GoldenBeard" and x.hearing_impaired]
                     if len(preferred_choice) > 0:
                         return preferred_choice[0]
                     else:
                         return filtered_list[0]
                 else:
                     # No subtitles found
+                    logging.info("No subtitles were found")
                     return None
             else:
                 # this is not a tv-show but a movie.
                 # there is no good way to check for accuracy
                 # So we are just going to compare string for string separated by .
                 # assign a point for any match and return the subtitle with the hishest points
+                logging.info("Title is a movie")
                 title_strings = title.split(".")
                 sub_with_score_list = []
                 for sub in subtitle_list:
@@ -94,19 +112,33 @@ class Subscene(BaseSubtitles):
                 # Ideally we want 100% relevance. Lets start with those
                 hundred_percent_relevance = [(x, y) for (x, y) in sub_with_score_list if y == 100]
                 if len(hundred_percent_relevance) > 0:
+                    logging.info("We have a title with 100% relevance. Lets take it")
                     return hundred_percent_relevance[0][0]
                 else:
                     # We don't have 100%. Lets be strict and only allow those with 1 difference
                     min_tolerance = ((len(title_strings) - 1) / len(title_strings)) * 100
+                    logging.info("No movie had 100 percent relevance lets settle for %0.2f tolerance" % min_tolerance)
                     min_tolerance_list = sorted([(x, y) for (x, y) in sub_with_score_list if y >= min_tolerance],
                                                 key=lambda x: x[1])
                     if min_tolerance_list and len(min_tolerance_list) > 0:
                         # return the one with the highest relevance
                         return min_tolerance_list[0][0]
                     else:
-                        return None
+                        logging.info("No subtitles lvl 1 minimum tolerance. Lets go 1 lvl worse")
+                        min_tolerance = ((len(title_strings) - 2) / len(title_strings)) * 100
+                        logging.info(
+                            "Lets settle for %0.2f tolerance" % min_tolerance)
+                        min_tolerance_list = sorted([(x, y) for (x, y) in sub_with_score_list if y >= min_tolerance],
+                                                    key=lambda x: x[1])
+                        if min_tolerance_list and len(min_tolerance_list) > 0:
+                            # return the one with the highest relevance
+                            return min_tolerance_list[0][0]
+                        else:
+                            logging.info("Any lower and we jeopardize accuracy we are stopping here")
+                            return None
         except Exception as ex:
             logging.error("Something went wrong %s" % ex)
+            return None
 
     def __str__(self):
         return "Subscene"
@@ -132,7 +164,33 @@ class Subscene(BaseSubtitles):
             logging.error("An error occurred fetching subs: %s" % ex)
 
     def download_subtitle(self, subtitle, location, title):
-        pass
+        try:
+            r = requests.get(url=self.BASE_URL + subtitle.link)
+            subtitle_page = html.fromstring(r.content)
+            subtitle_download_link = subtitle_page.xpath("//*[@id=\"downloadButton\"]/@href")[0].strip()
+            if subtitle_download_link:
+                # this is the link to do the download file
+                # lets use BytesIO to read that shit
+                r = requests.get(url=self.BASE_URL + subtitle_download_link)
+                z = zipfile.ZipFile(io.BytesIO(r.content))
+                file_list = z.namelist();
+                subtitle_only = [sub for sub in file_list if sub.endswith("srt")]
+                # rename the file
+                # create a temp directory to extract files
+                temp_dir = tempfile.mkdtemp()
+                z.extractall(path=temp_dir, members=subtitle_only)
+                # rename downloaded subtitle to location with title name
+                # if title contains extension (avi, mp4, mkv) remove it otherwise use the title
+                renamed_string = ""
+                if title.endswith(".avi") or title.endswith(".mkv") or title.endswith(".mp4"):
+                    renamed_string = title[:-4]
+                else:
+                    renamed_string = title
+                shutil.move(os.path.join(temp_dir, subtitle_only[0]), os.path.join(location, renamed_string + ".srt"))
+                # remove tempdir
+                shutil.rmtree(temp_dir)
+        except Exception as ex:
+            logging.error("Error while downloading subtitle: %s" % ex)
 
 
 class SubsceneSubs(object):

@@ -68,7 +68,9 @@ class SubtitlesPlease(PatternMatchingEventHandler):
         file_name, location = self.get_file_and_location_from_path(source_file)
         logging.info("OnCreated Got Called: %s | %s" % (file_name, location))
         for module in self.modules:
-            module.get_subtitles(title=file_name, location=location)
+            if module.get_subtitles(title=file_name, location=location):
+                logging.info("Module %s found a suitable subtitle", str(module))
+                break
 
     def run(self):
         """

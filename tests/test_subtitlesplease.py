@@ -49,7 +49,8 @@ class TestSubtitlesPlease(unittest.TestCase):
         self.assertEqual("OpenSubtitles", str(openSubs))
 
     def test_subscene_query_subscene(self):
-        docs = self.subscene.get_subtitles(title="Devious.Maids.S04E09.HDTV.x264-FLEET[PRiME]", location="/")
+        docs = self.subscene.get_subtitles(title="The.Purge.Election.Year.2016.HC.HDRip.XviD.AC3-EVO",
+                                           location="/Users/smurf/Downloads")
         self.assertIsNotNone(docs)
 
 
