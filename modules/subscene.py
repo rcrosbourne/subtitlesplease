@@ -31,12 +31,17 @@ class Subscene(BaseSubtitles):
         """
         try:
             logging.info("%s Getting title of %s to store %s" % (str(self), title, location))
-            subtitle_list = self.query_subscene(title=title, language=language)
+            renamed_title = ""
+            if title.endswith(".avi") or title.endswith(".mkv") or title.endswith(".mp4"):
+                renamed_title = title[:-4]
+            else:
+                renamed_title = title
+            subtitle_list = self.query_subscene(title=renamed_title, language=language)
             logging.info("%s subtitles found" % len(subtitle_list))
             if len(subtitle_list) > 0:
                 subtitle = self.best_subtitle_from_list(subtitle_list, title)
                 if subtitle:
-                    self.download_subtitle(subtitle=subtitle, location=location, title=title)
+                    self.download_subtitle(subtitle=subtitle, location=location, title=renamed_title)
                     return True
                 else:
                     logging.info("No suitable subtitles were found")
@@ -181,12 +186,12 @@ class Subscene(BaseSubtitles):
                 z.extractall(path=temp_dir, members=subtitle_only)
                 # rename downloaded subtitle to location with title name
                 # if title contains extension (avi, mp4, mkv) remove it otherwise use the title
-                renamed_string = ""
-                if title.endswith(".avi") or title.endswith(".mkv") or title.endswith(".mp4"):
-                    renamed_string = title[:-4]
-                else:
-                    renamed_string = title
-                shutil.move(os.path.join(temp_dir, subtitle_only[0]), os.path.join(location, renamed_string + ".srt"))
+                # renamed_string = ""
+                # if title.endswith(".avi") or title.endswith(".mkv") or title.endswith(".mp4"):
+                #    renamed_string = title[:-4]
+                # else:
+                #   renamed_string = title
+                shutil.move(os.path.join(temp_dir, subtitle_only[0]), os.path.join(location, title + ".srt"))
                 # remove tempdir
                 shutil.rmtree(temp_dir)
         except Exception as ex:

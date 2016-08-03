@@ -49,7 +49,7 @@ class TestSubtitlesPlease(unittest.TestCase):
         self.assertEqual("OpenSubtitles", str(openSubs))
 
     def test_subscene_query_subscene(self):
-        docs = self.subscene.get_subtitles(title="The.Purge.Election.Year.2016.HC.HDRip.XviD.AC3-EVO",
+        docs = self.subscene.get_subtitles(title="Menace.II.Society.1993.1080p.BluRay.x264.YIFY.mp4",
                                            location="/Users/smurf/Downloads")
         self.assertIsNotNone(docs)
 
